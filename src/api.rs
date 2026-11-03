@@ -4,10 +4,55 @@ use scraper::{Html, Selector};
 use std::sync::Arc;
 use reqwest::Url;
 use reqwest::Response;
+use serde_json::Value;
 
+pub async fn get_client(url: &str) -> reqwest::Client {
+    let url = url.parse::<Url>().unwrap();
+    let jar = fill_from_domain(&url, &""); 
+    reqwest::Client::builder()
+        .cookie_provider(Arc::new(jar))
+        .build()
+        .unwrap()
+}
+
+
+// Songsterr pulls tab data for each track separately from some
+// https://dqsljvtekg760.cloudfront.net/<data_id>/<revision_id>/<image>/<track_num>.json
+// while we have data_id and can generate track_num from overall track number 
+// we also need to pull revision_id and image that are located inside 
+// document pulled from <SavedSong>.href url and get both mising parts.
+pub async fn get_cloudfront_url_parts(href: &str, client: &mut reqwest::Client) -> [String; 2] {
+    let link = format!("https://www.songsterr.com{}", href);
+    let url = link.parse::<Url>().unwrap();
+    let resp = client.get(url).send().await.unwrap(); 
+    parse_song_href_page(resp).await 
+}
+
+async fn parse_song_href_page(resp: Response) -> [String; 2] {
+    let page_content = resp.text().await.unwrap();
+    let document = Html::parse_document(&page_content);
+    let json_data_selector = Selector::parse("[id='state']").unwrap();
+    let json_text = document.select(&json_data_selector)
+        .next()
+        .unwrap()
+        .text()
+        .collect::<String>()
+        .trim()
+        .to_string();
+    
+    let data: Value = serde_json::from_str(&json_text).unwrap();
+    let image = data["meta"]["current"]["image"]
+        .as_str().unwrap()
+        .to_string(); // without this returns &str 
+
+    let revision_id = data["meta"]["current"]["revisionId"]
+        .as_u64().unwrap()
+        .to_string();
+
+    return [image, revision_id]
+}
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
 pub struct SavedSong {
     pub name: String,
     pub artist: String,
@@ -16,20 +61,10 @@ pub struct SavedSong {
 
 }
 
-pub async fn get_fav_songs(url: &str) -> Vec<SavedSong> {
-    let resp = get_favourites_html_page(url);
-    parse_favourites_page(resp.await).await
-}
-
-async fn get_favourites_html_page(url: &str) -> Response  {
-    let url = url.parse::<Url>().unwrap();
-    let jar = fill_from_domain(&url, &""); 
-    let client = reqwest::Client::builder()
-        .cookie_provider(Arc::new(jar))
-        .build()
-        .unwrap();
-
-    client.get(url).send().await.unwrap()
+pub async fn get_fav_songs(link: &str, client: &mut reqwest::Client) -> Vec<SavedSong> {
+    let url = link.parse::<Url>().unwrap();
+    let resp = client.get(url).send().await.unwrap();
+    parse_favourites_page(resp).await
 }
 
 async fn parse_favourites_page(resp: Response) -> Vec<SavedSong> {
