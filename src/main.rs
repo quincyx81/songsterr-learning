@@ -12,9 +12,9 @@ async fn main() {
     let html_url = "https://www.songsterr.com/favorites";
     let mut client = get_client("https://www.songsterr.com/").await;
     let json = get_fav_songs(&html_url, &mut client).await;
-    let [image, revision_id]: [String; 2] = get_cloudfront_url_parts(&json[0].href, &mut client).await;
-    println!("{}, {}", image, revision_id);
-    // draw_test_span(&json).unwrap();
+    draw_test_span(&json).unwrap();
+    // let [image, revision_id]: [String; 2] = get_cloudfront_url_parts(&json[0].href, &mut client).await;
+    // println!("https://dqsljvtekg760.cloudfront.net/{}/{}/{}/1.json", &json[0].data_id, revision_id, image);
 }
 
 
