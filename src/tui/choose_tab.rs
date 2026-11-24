@@ -5,10 +5,10 @@ use ratatui::widgets::Block;
 use ratatui::style::Style;
 use ratatui::widgets::{List, ListState};
 use crate::api::SavedSong;
-use crate::tui::guitar_tab::render_guitar_tab;
+use crate::tui::guitar_tab::draw_guitar_tab;
 
 pub fn draw_test_span(items: &Vec<SavedSong>) -> color_eyre::Result<()> {
-    
+    let mut scroll: u16 = 0; 
     let mut state = ListState::default();
     color_eyre::install()?;
 
@@ -17,7 +17,7 @@ pub fn draw_test_span(items: &Vec<SavedSong>) -> color_eyre::Result<()> {
             terminal.draw(|frame| {
                 let layouts = build_layout(&frame);
                 let list = test_render_list(items); 
-                render_guitar_tab(frame, layouts[2]);
+                draw_guitar_tab(frame, layouts[2], &mut scroll);
                 frame.render_stateful_widget(list, layouts[0], &mut state);
                 // test_render_list(frame, layouts[0])
             }).unwrap();
@@ -31,7 +31,12 @@ pub fn draw_test_span(items: &Vec<SavedSong>) -> color_eyre::Result<()> {
                         state.select_previous();
                     } else if key.code == KeyCode::Enter {
                         break;
+                    } else if key.code == KeyCode::Char('j') {
+                        scroll = scroll.saturating_add(1);
+                    } else if key.code == KeyCode::Char('k') {
+                        scroll = scroll.saturating_sub(1);
                     }
+
                 
             }
         }

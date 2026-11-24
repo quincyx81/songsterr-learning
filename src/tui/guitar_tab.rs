@@ -4,21 +4,25 @@ use ratatui::layout::{Rect};
 use ratatui::text::Line;
 
 const STRINGS: [&str; 6] = ["e", "B", "G", "D", "A", "E"];
-const ROW_H: u16 = 7;// 6 strings and one blank line
 const INDENT: usize = 2;
 
-pub fn render_guitar_tab(frame: &mut Frame, outer: Rect) {
+pub fn draw_guitar_tab(frame: &mut Frame, outer: Rect, scroll: &mut u16) {
     let block = Block::default().padding(Padding::new(2, 2, 0, 1));
-    let area = block.inner(outer);
-    frame.render_widget(block, outer);
+    let inner = block.inner(outer);
+    let lines = build_guitar_tab(inner);
+    // clamping scroll 
+    *scroll = (*scroll).clamp(0, lines.len().saturating_sub(inner.height as usize) as u16);
+    render_guitar_tab(frame, lines, inner, outer, block, scroll);
+}
 
-    let bar_num = 22; // to be replaced by func argument
+fn build_guitar_tab(area: Rect) -> Vec<Line<'static>> {
+    let bar_num = 32; // to be replaced by func argument
     let area_width = area.width as usize;
-
-    if area_width == 0 || area.height < 6 {
-        return;
-    } 
     
+    if area_width == 0 {
+        return vec![];
+    }
+
     let mut full_string_tab: Vec<Vec<char>> = vec![];
     for string_name in STRINGS {
         let mut string_notes: Vec<char> = format!("{string_name}├").chars().collect();
@@ -30,6 +34,7 @@ pub fn render_guitar_tab(frame: &mut Frame, outer: Rect) {
     }
 
     let total_length = full_string_tab[0].len();
+    let mut lines: Vec<Line> = vec![] ;
     let mut current_note_progress = 0;
     let mut current_row: u16 = 0;
     
@@ -39,28 +44,27 @@ pub fn render_guitar_tab(frame: &mut Frame, outer: Rect) {
         let cap = area_width.saturating_sub(indent_len).max(1);
         let end = (current_note_progress + cap).min(total_length);
         
-        let y = area.y + current_row * ROW_H;
-
-        if y + 6 > area.bottom() {
-            break;
-        }
-
-        let mut lines: Vec<Line> = vec![] ;
-
         for string_notes in &full_string_tab {
             let mut chars_for_line = " ".repeat(indent_len);
             // get string notes from full tab based on current
             // note progress
             chars_for_line.extend(&string_notes[current_note_progress..end]);
             lines.push(Line::from(chars_for_line));
-
         }
-        frame.render_widget(
-            Paragraph::new(lines),
-            Rect { x: area.x, y, width: (indent_len + end - current_note_progress) as u16, height: 6 },
-        );
+        lines.push(Line::from(""));
         current_note_progress = end;
         current_row += 1;
-    
     }
+
+    lines
 }
+
+fn render_guitar_tab(frame: &mut Frame, lines: Vec<Line>, inner: Rect, outer: Rect, block: Block, scroll: &u16) {
+    let end = (*scroll as usize + inner.height as usize).min(lines.len());
+    frame.render_widget(block, outer);
+    frame.render_widget(
+        Paragraph::new(&lines[*scroll as usize..end]),
+        inner
+    );
+}
+
