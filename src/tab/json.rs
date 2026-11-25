@@ -23,8 +23,8 @@ pub struct Beat {
 
 #[derive(Deserialize)]
 pub struct Note {
-   pub string: u8,
-   pub fret: u8
+   pub string: Option<u8>,
+   pub fret: Option<u8>
 }
 
 pub fn load(body: &str) -> Tab {

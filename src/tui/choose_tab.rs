@@ -6,10 +6,17 @@ use ratatui::style::Style;
 use ratatui::widgets::{List, ListState};
 use crate::api::{SavedSong, pull_data_from_cloudfront};
 use crate::tui::guitar_tab::draw_guitar_tab;
+use crate::tab;
+
 
 pub fn draw_test_span(items: &Vec<SavedSong>, client: &mut reqwest::Client) -> color_eyre::Result<()> {
     let mut scroll: u16 = 0; 
     let mut state = ListState::default();
+    
+    // temp reading from file and deserializing tab
+    let body = std::fs::read_to_string("playground/current.json").unwrap();
+    let tab = tab::json::load(&body);
+
     color_eyre::install()?;
 
     ratatui::run(|terminal| {
@@ -17,7 +24,7 @@ pub fn draw_test_span(items: &Vec<SavedSong>, client: &mut reqwest::Client) -> c
             terminal.draw(|frame| {
                 let layouts = build_layout(&frame);
                 let list = test_render_list(items); 
-                draw_guitar_tab(frame, layouts[2], &mut scroll);
+                draw_guitar_tab(frame, layouts[2], &mut scroll, &tab);
                 frame.render_stateful_widget(list, layouts[0], &mut state);
                 // test_render_list(frame, layouts[0])
             }).unwrap();
