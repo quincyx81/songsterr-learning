@@ -4,10 +4,10 @@ use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::widgets::Block;
 use ratatui::style::Style;
 use ratatui::widgets::{List, ListState};
-use crate::api::SavedSong;
+use crate::api::{SavedSong, pull_data_from_cloudfront};
 use crate::tui::guitar_tab::draw_guitar_tab;
 
-pub fn draw_test_span(items: &Vec<SavedSong>) -> color_eyre::Result<()> {
+pub fn draw_test_span(items: &Vec<SavedSong>, client: &mut reqwest::Client) -> color_eyre::Result<()> {
     let mut scroll: u16 = 0; 
     let mut state = ListState::default();
     color_eyre::install()?;
@@ -30,7 +30,14 @@ pub fn draw_test_span(items: &Vec<SavedSong>) -> color_eyre::Result<()> {
                     } else if key.code == KeyCode::Up {
                         state.select_previous();
                     } else if key.code == KeyCode::Enter {
-                        break;
+                        let cur_item = &items[state.selected().unwrap()];
+                        // cloning shi for tokio spawn
+                        let mut client = client.clone();
+                        let href = cur_item.href.clone();
+                        let data_id = cur_item.data_id;
+                        tokio::spawn( async move {
+                            pull_data_from_cloudfront(&href, data_id, &mut client).await;
+                        });
                     } else if key.code == KeyCode::Char('j') {
                         scroll = scroll.saturating_add(1);
                     } else if key.code == KeyCode::Char('k') {

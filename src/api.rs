@@ -1,10 +1,25 @@
 use crate::utils::cookie_jar::fill_from_domain;
+use crate::tab;
 use serde::{Serialize, Deserialize};
 use scraper::{Html, Selector};
 use std::sync::Arc;
 use reqwest::Url;
 use reqwest::Response;
 use serde_json::Value;
+
+
+pub async fn pull_data_from_cloudfront(href: &str, data_id: u32, client: &mut reqwest::Client) {
+    let [image, revision_id]: [String; 2] = get_cloudfront_url_parts(href, client).await;
+    //  println!("https://dqsljvtekg760.cloudfront.net/{}/{}/{}/1.json", &json[0].data_id, revision_id, image);
+    let link = format!("https://dqsljvtekg760.cloudfront.net/{}/{}/{}/0.json", data_id, revision_id, image);
+    let url = link.parse::<Url>().unwrap();
+    let resp = client.get(url).send().await.unwrap();
+    let body = resp.text().await.unwrap();
+    let value: Value = serde_json::from_str(&body).unwrap();
+    let pretty = serde_json::to_string_pretty(&value).unwrap();
+    std::fs::write("playground/current.json", pretty).unwrap();
+    tab::json::load(&body);
+}
 
 pub async fn get_client(url: &str) -> reqwest::Client {
     let url = url.parse::<Url>().unwrap();
