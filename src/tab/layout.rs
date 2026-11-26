@@ -24,7 +24,7 @@ fn build_bar(bar: &Bar, is_last: bool) -> Vec<Vec<char>> {
     let mut bar_str = vec![vec!['─'; 2]; 6]; // create start of two dashes for each string
     let beats = &bar.voices[0].beats;
     for i in 0..6 {
-        bar_str[i].extend(std::iter::repeat('─').take(beats.len() * 4)); // populate each string
+        bar_str[i].extend(std::iter::repeat('─').take(beats.len() * 5)); // populate each string
         bar_str[i].push(if is_last { '┤' } else { '┼' });                // with 4 dashes, 2 for
                                                                          // note and 2 for spacing
     }
@@ -34,8 +34,9 @@ fn build_bar(bar: &Bar, is_last: bool) -> Vec<Vec<char>> {
             let Some(fret) = note.fret else { continue };
             let Some(string) = note.string else { continue };
             
-            let beat_index = 2 + i * 4;
+            let beat_index = 2 + i * 5;
             let fret_str = fret.to_string();
+
             bar_str[string as usize].splice(beat_index..beat_index + fret_str.len(), fret_str.chars());
         }
     }

@@ -1,8 +1,9 @@
 use crate::{tab, tab::json::Tab};
 use ratatui::widgets::{Paragraph, Block, Padding};
+use ratatui::style::{Color, Modifier, Style};
 use ratatui::Frame;
 use ratatui::layout::{Rect};
-use ratatui::text::Line;
+use ratatui::text::{Line, Span};
 
 const INDENT: usize = 2;
 
@@ -40,7 +41,8 @@ fn build_guitar_tab(area: Rect, tab: &Tab) -> Vec<Line<'static>> {
             // get string notes from full tab based on current
             // note progress
             chars_for_line.extend(&string_notes[current_note_progress..end]);
-            lines.push(Line::from(chars_for_line));
+            // lines.push(Line::from(chars_for_line));
+            lines.push(style_row(chars_for_line.chars().collect()));
         }
         lines.push(Line::from(""));
         current_note_progress = end;
@@ -48,6 +50,23 @@ fn build_guitar_tab(area: Rect, tab: &Tab) -> Vec<Line<'static>> {
     }
 
     lines
+}
+fn style_row(row: Vec<char>) -> Line<'static> {
+    let spans: Vec<Span<'static>> = row
+        // group neighbors with the same style into one Span
+        .chunk_by(|a, b| style_for(*a) == style_for(*b))
+        .map(|chunk| Span::styled(chunk.iter().collect::<String>(), style_for(chunk[0])))
+        .collect();
+
+    Line::from(spans)
+}
+
+fn style_for(c: char) -> Style {
+    match c {
+        '─' | '┼' | '├' | '┤' => Style::new().fg(Color::Indexed(247)), // dim lines
+        '0'..='9' => Style::new().add_modifier(Modifier::BOLD),
+        _ => Style::new(), // string names
+    }
 }
 
 fn render_guitar_tab(frame: &mut Frame, lines: Vec<Line>, inner: Rect, outer: Rect, block: Block, scroll: &u16) {
