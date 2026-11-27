@@ -2,17 +2,18 @@ use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct Tab {
-   pub measures: Vec<Bar>
+    pub measures: Vec<Bar>
 }
 
 #[derive(Deserialize)]
 pub struct Bar {
-  pub voices: Vec<Voice> 
+    pub signature: Option<[u8; 2]>,
+    pub voices: Vec<Voice> 
 } 
 
 #[derive(Deserialize)]
 pub struct Voice {
-   pub beats: Vec<Beat> 
+    pub beats: Vec<Beat> 
 }
 
 #[derive(Deserialize)]
